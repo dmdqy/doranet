@@ -1,6 +1,6 @@
 # DORAnet Quick Start: Hybrid Pathways
 
-In this quick start, you’ll reproduce the “Hybrid Pathways” Colab tutorial as a GitHub-friendly Markdown guide. You’ll install DORAnet, generate an enzymatic (forward) and a synthetic (retro) network, and run post-processing to find and visualize paths from your starters to a target.
+In this quick start, you’ll install DORAnet, generate an enzymatic (forward) and a synthetic (retro) network, and run post-processing to find and visualize paths from your starters to a target.
 
 ## Install
 
@@ -25,7 +25,7 @@ import doranet.modules.post_processing as post_processing
 ```
 
 * The `enzymatic` module wraps assumptions for enzymatic network expansion.
-* The `synthetic` module is for chemical (rule-based) expansion.
+* The `synthetic` module is for chemical expansion.
 * The `post_processing` module collects functions that find, rank, and visualize pathways.
 
 ## Define Inputs (SMILES)
@@ -34,12 +34,12 @@ We’ll choose the **starters**, **helpers**, and **target** as SMILES strings. 
 
 You can also provide filenames (e.g., `.txt`, `.csv`) where each line is a SMILES. For example: `starters = "starters.txt"`.
 
-> **Helpers (chemical only).** Helpers are molecules (e.g., O, H₂O, O₂) that can react with starters but cannot be the only reactants in a reaction. They are optional, but many chemical rules require common helpers such as oxygen and water. In the final pathway PDF, helpers are listed next to reactions (not rendered as molecule images).
+> **Helpers (used in chemical expansions only).** Helpers are molecules (e.g., H₂, H₂O, O₂) that can react with starters but cannot be the only reactants in a reaction. They are optional, but many chemical rules require common helpers such as oxygen and water. In the final pathway PDF, helpers are listed next to reactions (not rendered as molecule images).
 
 ```python
-user_starters = set()     # e.g., {"CCO"} for ethanol
-user_helpers = set()      # e.g., {"O", "O=O"} for water (O) and oxygen (O=O)
-user_target  = set()      # e.g., {"CC(O)=O"} for acetic acid
+user_starters = set("CCO")                    # "CCO" for ethanol
+user_helpers = set("O", "O=O", "[H][H]")      # "O", "O=O", "[H][H]" for water (O), oxygen (O=O), and hydrogen([H][H])
+user_target  = set("CC(O)=O")                 # "CC(O)=O" for acetic acid
 job_name = "Acetic_acid_hybrid"
 ```
 
@@ -81,17 +81,18 @@ If Graphviz/PyGraphviz is **not** installed, DORAnet will use a custom layout, w
 You can also use pre-existing network files on disk by passing their names (e.g., `networks = {"Acetic_acid_hybrid__forward_saved_network"}`).
 
 ```python
-post_processing.one_step(
-    networks={
-        forward_network,
-        retro_network,
-    },
-    total_generations=2,
-    starters=user_starters,
-    helpers=user_helpers,
-    target=user_target,
-    job_name=job_name,
-)
+if __name__ == "__main__":
+    post_processing.one_step(
+        networks={
+            forward_network,
+            retro_network,
+        },
+        total_generations=2,
+        starters=user_starters,
+        helpers=user_helpers,
+        target=user_target,
+        job_name=job_name,
+    )
 ```
 
 ---
@@ -193,7 +194,7 @@ retro_network = enzymatic.generate_network(
 
 ---
 
-# Extra 3 — Optional Arguments (Reference)
+# Extra 3 — Optional Arguments and Their Default Values (Reference)
 
 **`synthetic.generate_network`**
 
@@ -206,9 +207,9 @@ generate_network(
     direction="forward",
     molecule_thermo_calculator=None,
     max_rxn_thermo_change=15,
-    max_atoms=None,                 # e.g., {"C": 20, "O": 10} caps per-element atom counts in products.
+    max_atoms=None,                      # e.g., max_atoms={"C": 20, "O": 10} caps per-element atom counts in any product molecule.
     allow_multiple_reactants="default",  # Default True in forward, False in retro. If False, a reactant may react with itself or helpers, but not with other reactants.
-    targets=None,                   # String/list/set... Check presence after expansion.
+    targets=None,                        # String/list/set... Check presence after expansion.
 )
 ```
 
@@ -223,9 +224,9 @@ generate_network(
     direction="forward",
     rxn_thermo_calculator=None,
     max_rxn_thermo_change=15,
-    max_atoms=None,                 # e.g., {"C": 20, "O": 10}
+    max_atoms=None,
     allow_multiple_reactants=False,
-    targets=None,                   # String/list/set...
+    targets=None,
 )
 ```
 
@@ -233,8 +234,8 @@ generate_network(
 
 ```python
 pretreat_networks(
-    networks=None,
-    total_generations=1,
+    networks=None,                     # Can be more than 2 networks. e.g., {forward_1, forward_2, forward_3, retro}.
+    total_generations=1,               # e.g., 2-gen forward + 3-gen retro expansion, set total_generations=5.
     starters=None,
     helpers=None,
     job_name="default_job_name",
@@ -248,27 +249,27 @@ pathway_finder(
     starters=None,
     helpers=None,
     target=None,
-    search_depth=1,            # Should not exceed total_generations from pretreat.
-    max_num_rxns=1,            # Max reactions per pathway.
-    min_rxn_atom_economy=0.3,  # 0–1.
+    search_depth=1,                 # Should not exceed total_generations from pretreat.
+    max_num_rxns=1,                 # Max reactions per pathway.
+    min_rxn_atom_economy=0.3,       # 0–1.
     job_name="default_job_name",
-    consider_name_difference=True,  # If True, reactions with different names are treated as distinct.
+    consider_name_difference=True,  # If True, same reactions with different names are treated as distinct.
 )
 
 pathway_ranking(
     starters=None,
     helpers=None,
     target=None,
-    weights=None,              # Defaults:
-                               # {"reaction_thermo": 2,
-                               #  "number_of_steps": 4,
-                               #  "by_product_number": 2,
-                               #  "atom_economy": 1,
-                               #  "salt_score": 0,
-                               #  "in_reaxys": 0,
-                               #  "coolness": 0}
-    num_process=1,
-    reaxys_result_name=None,   # CSV filename.
+    weights=None,                     # Defaults:
+                                      # {"reaction_thermo": 2,
+                                      #  "number_of_steps": 4,
+                                      #  "by_product_number": 2,
+                                      #  "atom_economy": 1,
+                                      #  "salt_score": 0,
+                                      #  "in_reaxys": 0,
+                                      #  "coolness": 0}
+    num_process=1,                    # Number of CPU processes
+    reaxys_result_name=None,          # CSV filename.
     job_name="default_job_name",
     cool_reactions=None,
     molecule_thermo_calculator=None,  # For by-product scoring.
@@ -281,7 +282,7 @@ pathway_visualization(
     num_process=1,
     reaxys_result_name="default",
     job_name="default_job_name",
-    exclude_smiles=None,       # Set/list... Exclude pathways containing these molecules.
+    exclude_smiles=None,         # Set/list... Exclude pathways containing these molecules.
     reaxys_rxn_color="blue",
     normal_rxn_color="black",
 )
@@ -302,7 +303,7 @@ If you have Reaxys access, upload the batch query and copy the result log into t
 
 ---
 
-# Extra 5 — Install DORAnet Locally
+# Extra 5 — Install Environment
 
 It’s recommended to use a virtual environment (Conda is popular).
 
@@ -333,11 +334,10 @@ It’s recommended to use a virtual environment (Conda is popular).
      conda activate your_env_name
      ```
 
-5. **Install / update DORAnet**
+5. **Install DORAnet**
 
    ```bash
    pip install doranet
-   pip install --upgrade doranet
    ```
 
 ---
@@ -355,6 +355,5 @@ if __name__ == "__main__":
 
 ## What’s Next?
 
-* Try adding example SMILES (e.g., ethanol `CCO` as a starter and acetic acid `CC(O)=O` as the target) to produce a small hybrid pathway set.
-* If DORAnet is already installed, continue to the next tutorial in your series; otherwise, see the project’s `README.md` for setup details.
+* The functions introduced here provide a simplified interface to DORAnet’s core functions. See the other tutorial pages for in-depth operations.
 
