@@ -37,9 +37,9 @@ You can also provide filenames (e.g., `.txt`, `.csv`) where each line is a SMILE
 > **Helpers (used in chemical expansions only).** Helpers are molecules (e.g., H₂, H₂O, O₂) that can react with starters but cannot be the only reactants in a reaction. They are optional, but many chemical rules require common helpers such as oxygen and water. In the final pathway PDF, helpers are listed next to reactions (not rendered as molecule images).
 
 ```python
-user_starters = set("CCO")                    # "CCO" for ethanol
-user_helpers = set("O", "O=O", "[H][H]")      # "O", "O=O", "[H][H]" for water (O), oxygen (O=O), and hydrogen([H][H])
-user_target  = set("CC(O)=O")                 # "CC(O)=O" for acetic acid
+user_starters = {"CCO"}                    # "CCO" for ethanol
+user_helpers = {"O", "O=O", "[H][H]"}      # "O", "O=O", "[H][H]" for water (O), oxygen (O=O), and hydrogen([H][H])
+user_target  = {"CC(O)=O"}                 # "CC(O)=O" for acetic acid
 job_name = "Acetic_acid_hybrid"
 ```
 
